@@ -40,7 +40,7 @@ kernel_size = 5
 # Define our parameters for Canny and apply
 low_threshold = 50
 high_threshold = 150
-vertices = np.array([[(878,539),(142, 539), (438, 322), (522,322)]], dtype=np.int32)
+vertices = np.array([[(900,539),(142, 539), (438, 322), (522,322)]], dtype=np.int32)
 # Define the Hough transform parameters
 # Make a blank the same size as our image to draw on
 rho = 2 # distance resolution in pixels of the Hough grid
@@ -53,7 +53,7 @@ while(cap.isOpened()):
     ret, frame = cap.read()
     if ret==True:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cv2.imshow('frame',gray)
+        #cv2.imshow('frame',gray)
 
         line_image = np.copy(frame)*0 # creating a blank to draw lines on
 
@@ -63,10 +63,11 @@ while(cap.isOpened()):
         mask = np.zeros_like(edges)   
         ignore_mask_color = 255   
         # This time we are defining a four sided polygon to mask    
-        imshape = image.shape
+        #imshape = image.shape
     
         cv2.fillPoly(mask, vertices, ignore_mask_color)
         masked_edges = cv2.bitwise_and(edges, mask)
+        #cv2.imshow('frame',masked_edges)
 
         # Run Hough on edge detected image
         # Output "lines" is an array containing endpoints of detected line segments
@@ -74,7 +75,7 @@ while(cap.isOpened()):
         # Iterate over the output "lines" and draw lines on a blank image
         for line in lines:
             for x1,y1,x2,y2 in line:
-                cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),10)
+                cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),10)
 
             # Create a "color" binary image to combine with line image
             color_edges = np.dstack((edges, edges, edges)) 
@@ -83,8 +84,8 @@ while(cap.isOpened()):
             lines_edges = cv2.addWeighted(color_edges, 0.8, line_image, 1, 0) 
 
 
-
-        out.write(lines_edges)
+        final_frame = cv2.bitwise_or(line_image, frame)
+        out.write(final_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
