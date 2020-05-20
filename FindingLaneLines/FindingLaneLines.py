@@ -18,6 +18,7 @@ import cv2
 image = mpimg.imread('whiteCarLaneSwitch.jpg')
 
 cap = cv2.VideoCapture('solidWhiteRight.mp4')
+#cap = cv2.VideoCapture('solidYellowLeft.mp4')
 
 print("W: ")
 print(cap.get(3))
@@ -40,7 +41,7 @@ kernel_size = 5
 # Define our parameters for Canny and apply
 low_threshold = 50
 high_threshold = 150
-vertices = np.array([[(900,539),(142, 539), (438, 322), (522,322)]], dtype=np.int32)
+vertices = np.array([[(900,539),(135, 539), (438, 322), (522,322)]], dtype=np.int32)
 # Define the Hough transform parameters
 # Make a blank the same size as our image to draw on
 rho = 2 # distance resolution in pixels of the Hough grid
@@ -73,9 +74,33 @@ while(cap.isOpened()):
         # Output "lines" is an array containing endpoints of detected line segments
         lines = cv2.HoughLinesP(masked_edges, rho, theta, threshold, np.array([]),min_line_length, max_line_gap)
         # Iterate over the output "lines" and draw lines on a blank image
+        #mu=[]
+        #b=[]
+        mu_positive = 0
+        mu_negative = 0
+        b_positive = 0
+        b_negative = 0
+        positive_count = 0
+        negative_count = 0
         for line in lines:
             for x1,y1,x2,y2 in line:
-                cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),10)
+                #cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),10)
+
+                #compute line eq. (y=mx+b)
+                slope_m = (y1-y2)/(x1-x2)
+                offset_b = -slope_m*x1+y1
+
+                # for debug
+                #mu.append(slope_m)
+                #b.append(offset_b)
+                if (slope_m>0):
+                    mu_positive = mu_positive + slope_m
+                    b_positive = b_positive + offset_b
+                    positive_count += 1
+                elif (slope_m<0):
+                    mu_negative = mu_negative + slope_m
+                    b_negative = b_negative + offset_b
+                    negative_count += 1
 
             # Create a "color" binary image to combine with line image
             color_edges = np.dstack((edges, edges, edges)) 
@@ -83,9 +108,28 @@ while(cap.isOpened()):
             # Draw the lines on the edge image
             lines_edges = cv2.addWeighted(color_edges, 0.8, line_image, 1, 0) 
 
+        # average mu and b
+        mu_positive = mu_positive/positive_count
+        mu_negative = mu_negative/negative_count
+        b_positive = b_positive/positive_count
+        b_negative = b_negative/negative_count
+
+        y1p_final = 322
+        y2p_final = 540
+        x1p_final = int( (y1p_final-b_positive)/mu_positive )
+        x2p_final = int( (y2p_final-b_positive)/mu_positive )
+        y1n_final = 322
+        y2n_final = 540
+        x1n_final = int( (y1n_final-b_negative)/mu_negative )
+        x2n_final = int( (y2n_final-b_negative)/mu_negative )
+       
+        cv2.line(line_image,(x1p_final,y1p_final),(x2p_final,y2p_final),(0,0,255),10)   #line_image
+        cv2.line(line_image,(x1n_final,y1n_final),(x2n_final,y2n_final),(0,0,255),10)   #line_image
 
         final_frame = cv2.bitwise_or(line_image, frame)
         out.write(final_frame)
+
+        cv2.imshow('frame',final_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -94,3 +138,8 @@ while(cap.isOpened()):
 cap.release()
 out.release()
 cv2.destroyAllWindows()
+
+#print(mu)
+#print(len(lines))
+#print(mu_positive)
+#print(mu_negative)
