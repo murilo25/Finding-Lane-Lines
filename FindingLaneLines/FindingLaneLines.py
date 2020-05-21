@@ -17,9 +17,9 @@ import cv2
 #image = mpimg.imread('solidYellowLeft.jpg')
 image = mpimg.imread('whiteCarLaneSwitch.jpg')
 
-cap = cv2.VideoCapture('solidWhiteRight.mp4')
+#cap = cv2.VideoCapture('solidWhiteRight.mp4')
 #cap = cv2.VideoCapture('solidYellowLeft.mp4')
-
+cap = cv2.VideoCapture('challenge.mp4')
 print("W: ")
 print(cap.get(3))
 print("\nH: ")
@@ -36,23 +36,32 @@ print(cap.get(8))
 fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
 out = cv2.VideoWriter('myVideo.avi',fourcc, 25.0, (960,540))
 
+# filter parameters
+alpha = 0.9
+frameCounter = 0
+filtered_mu_pos = 0
+filtered_mu_neg = 0
+filtered_b_pos = 0
+filtered_b_neg = 0
+
 # Define a kernel size and apply Gaussian smoothing
 kernel_size = 5
 # Define our parameters for Canny and apply
 low_threshold = 50
 high_threshold = 150
-vertices = np.array([[(900,539),(135, 539), (438, 322), (522,322)]], dtype=np.int32)
+# Define vertices of region of interest polygon
+vertices = np.array([[(900,539),(135, 539), (438, 326), (522,326)]], dtype=np.int32) #322
 # Define the Hough transform parameters
-# Make a blank the same size as our image to draw on
 rho = 2 # distance resolution in pixels of the Hough grid
 theta = np.pi/180 # angular resolution in radians of the Hough grid
 threshold = 25     # minimum number of votes (intersections in Hough grid cell) was 1
 min_line_length = 10 #minimum number of pixels making up a line was 5
 max_line_gap = 10  # maximum gap in pixels between connectable line segments was 10
-#line_image = np.copy(image)*0 # creating a blank to draw lines on
+
 while(cap.isOpened()):
     ret, frame = cap.read()
     if ret==True:
+        frameCounter += 1
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #cv2.imshow('frame',gray)
 
@@ -114,14 +123,30 @@ while(cap.isOpened()):
         b_positive = b_positive/positive_count
         b_negative = b_negative/negative_count
 
-        y1p_final = 322
+        if (frameCounter == 1):
+            filtered_mu_pos = mu_positive
+            filtered_mu_neg = mu_negative
+            filtered_b_pos = b_positive
+            filtered_b_neg = b_negative
+        else:
+            filtered_mu_pos = filtered_mu_pos*alpha + mu_positive*(1 - alpha)
+            filtered_mu_neg = filtered_mu_neg*alpha + mu_negative*(1 - alpha)
+            filtered_b_pos = filtered_b_pos*alpha + b_positive*(1 - alpha)
+            filtered_b_neg = filtered_b_neg*alpha + b_negative*(1 - alpha)
+
+        #filtered_mu_pos = (cumulative_mu_pos + mu_positive)/frameCounter
+        #filtered_mu_neg = (cumulative_mu_neg + mu_negative)/frameCounter
+        #filtered_b_pos = (cumulative_b_pos + b_positive)/frameCounter
+        #filtered_b_neg = (cumulative_mu_neg + b_negative)/frameCounter
+
+        y1p_final = 328
         y2p_final = 540
-        x1p_final = int( (y1p_final-b_positive)/mu_positive )
-        x2p_final = int( (y2p_final-b_positive)/mu_positive )
-        y1n_final = 322
+        x1p_final = int( (y1p_final-filtered_b_pos)/filtered_mu_pos )
+        x2p_final = int( (y2p_final-filtered_b_pos)/filtered_mu_pos )
+        y1n_final = 328
         y2n_final = 540
-        x1n_final = int( (y1n_final-b_negative)/mu_negative )
-        x2n_final = int( (y2n_final-b_negative)/mu_negative )
+        x1n_final = int( (y1n_final-filtered_b_neg)/filtered_mu_neg )
+        x2n_final = int( (y2n_final-filtered_b_neg)/filtered_mu_neg )
        
         cv2.line(line_image,(x1p_final,y1p_final),(x2p_final,y2p_final),(0,0,255),10)   #line_image
         cv2.line(line_image,(x1n_final,y1n_final),(x2n_final,y2n_final),(0,0,255),10)   #line_image
