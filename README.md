@@ -1,6 +1,6 @@
 # finding-lane-lines
 
-Find lane lines in an video using OpenCV. The detection is based on the following:
+Find lane lines in a video using OpenCV. The detection is based on the following:
 - Canny filter to identify edges (strong color transitions)
 - Hough transform to obtain coordinates for line segments
 - Region of interest masking
