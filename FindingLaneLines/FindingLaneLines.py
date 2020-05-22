@@ -17,9 +17,9 @@ import cv2
 #image = mpimg.imread('solidYellowLeft.jpg')
 image = mpimg.imread('whiteCarLaneSwitch.jpg')
 
-#cap = cv2.VideoCapture('solidWhiteRight.mp4')
+cap = cv2.VideoCapture('solidWhiteRight.mp4')
 #cap = cv2.VideoCapture('solidYellowLeft.mp4')
-cap = cv2.VideoCapture('challenge.mp4')
+#cap = cv2.VideoCapture('challenge.mp4')
 print("W: ")
 print(cap.get(3))
 print("\nH: ")
@@ -31,10 +31,14 @@ print(cap.get(6))
 print("\nFORMAT: ")
 print(cap.get(8))
 
+fps = cap.get(5)
+frame_width = cap.get(3)
+frame_height = cap.get(4)
+
 
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-out = cv2.VideoWriter('myVideo.avi',fourcc, 25.0, (960,540))
+out = cv2.VideoWriter('myVideo.avi',fourcc, fps, (int(frame_width),int(frame_height)))
 
 # filter parameters
 alpha = 0.9
@@ -78,6 +82,8 @@ while(cap.isOpened()):
         cv2.fillPoly(mask, vertices, ignore_mask_color)
         masked_edges = cv2.bitwise_and(edges, mask)
         #cv2.imshow('frame',masked_edges)
+        #plt.imshow(masked_edges)
+        #plt.show()
 
         # Run Hough on edge detected image
         # Output "lines" is an array containing endpoints of detected line segments
@@ -96,20 +102,21 @@ while(cap.isOpened()):
                 #cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),10)
 
                 #compute line eq. (y=mx+b)
-                slope_m = (y1-y2)/(x1-x2)
-                offset_b = -slope_m*x1+y1
+                if (x1-x2!=0):
+                    slope_m = (y1-y2)/(x1-x2)
+                    offset_b = -slope_m*x1+y1
 
-                # for debug
-                #mu.append(slope_m)
-                #b.append(offset_b)
-                if (slope_m>0):
-                    mu_positive = mu_positive + slope_m
-                    b_positive = b_positive + offset_b
-                    positive_count += 1
-                elif (slope_m<0):
-                    mu_negative = mu_negative + slope_m
-                    b_negative = b_negative + offset_b
-                    negative_count += 1
+                    # for debug
+                    #mu.append(slope_m)
+                    #b.append(offset_b)
+                    if (slope_m>0):
+                        mu_positive = mu_positive + slope_m
+                        b_positive = b_positive + offset_b
+                        positive_count += 1
+                    elif (slope_m<0):
+                        mu_negative = mu_negative + slope_m
+                        b_negative = b_negative + offset_b
+                        negative_count += 1
 
             # Create a "color" binary image to combine with line image
             color_edges = np.dstack((edges, edges, edges)) 
